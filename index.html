@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kickstarter Pledges Tree Map</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            height: 100vh;
+            margin: 0;
+        }
+
+        #title {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        #description {
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+
+        .tile {
+            stroke: #fff;
+        }
+
+        #legend {
+            display: flex;
+            justify-content: space-between;
+            max-width: 300px;
+            margin-top: 20px;
+        }
+
+        .legend-item {
+            flex: 1;
+            height: 20px;
+            border: 1px solid #ccc;
+        }
+
+        #tooltip {
+            position: absolute;
+            background-color: #f9f9f9;
+            border: 1px solid #ccc;
+            padding: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<h1 id="title">Kickstarter Pledges Tree Map</h1>
+<p id="description">Tree map representing Kickstarter pledges data</p>
+<svg id="treeMap"></svg>
+<div id="legend"></div>
+<div id="tooltip"></div>
+
+<script src="https://d3js.org/d3.v5.min.js"></script>
+<script>
+    // Load Kickstarter Pledges data
+    fetch('https://cdn.freecodecamp.org/testable-projects-fcc/data/tree_map/kickstarter-funding-data.json')
+        .then(response => response.json())
+        .then(data => {
+            // Chart dimensions
+            const width = 800;
+            const height = 600;
+
+            // Create SVG container
+            const svg = d3.select("#treeMap")
+                .attr("width", width)
+                .attr("height", height);
+
+            // Create hierarchy from the data
+            const root = d3.hierarchy(data)
+                .sum(d => d.value)
+                .sort((a, b) => b.value - a.value);
+
+            // Create treemap layout
+            const treemap = d3.treemap()
+                .size([width, height])
+                .padding(1)
+                .round(true);
+
+            // Generate treemap nodes
+            const nodes = treemap(root);
+
+            // Define color scale
+            const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+
+            // Create tiles
+            svg.selectAll("rect")
+                .data(nodes.leaves())
+                .enter()
+                .append("rect")
+                .attr("class", "tile")
+                .attr("x", d => d.x0)
+                .attr("y", d => d.y0)
+                .attr("width", d => d.x1 - d.x0)
+                .attr("height", d => d.y1 - d.y0)
+                .attr("fill", d => colorScale(d.data.category))
+                .attr("data-name", d => d.data.name)
+                .attr("data-category", d => d.data.category)
+                .attr("data-value", d => d.data.value)
+                .on("mouseover", function (event, d) {
+                    const tooltip = document.getElementById("tooltip");
+                    tooltip.style.display = "block";
+                    tooltip.style.left = event.pageX + 10 + "px";
+                    tooltip.style.top = event.pageY - 20 + "px";
+                    tooltip.innerHTML = `Name: ${d.data.name}<br>Category: ${d.data.category}<br>Value: ${d.data.value}`;
+                    tooltip.setAttribute("data-value", d.data.value);
+                })
+                .on("mouseout", function () {
+                    const tooltip = document.getElementById("tooltip");
+                    tooltip.style.display = "none";
+                });
+
+            // Title and description
+            document.getElementById("title").innerText = "Kickstarter Pledges Tree Map";
+            document.getElementById("description").innerText = "Tree map representing Kickstarter pledges data";
+
+            // Create legend
+            const legend = d3.select("#legend")
+                .selectAll(".legend-item")
+                .data(colorScale.domain())
+                .enter()
+                .append("div")
+                .attr("class", "legend-item")
+                .style("background-color", d => colorScale(d))
+                .text(d => d);
+        })
+        .catch(error => console.error(error));
+</script>
+
+</body>
+</html>
